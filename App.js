@@ -1,22 +1,87 @@
 import React, { Component } from 'react';
 import { 
-  Alert,
+  ActivityIndicator,
+  AlertIOS,
   AppRegistry,
-  Button,
   FlatList,
   KeyboardAvoidingView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableHighlight,
   View
 } from 'react-native';
+import * as firebase from 'firebase';
 
-export default class LotsOfStyles extends Component {
-    _onPressButton() {
-    Alert.alert('You tapped the button!')
+// Initialize Fierbase
+const firebaseConfig = {
+  apiKey: "AIzaSyDD3_mrigRWfV6rhom14aoT9IKY5jSiVkM",
+  authDomain: "eatwhere-bffbb.firebaseapp.com",
+  databaseURL: "https://eatwhere-bffbb.firebaseio.com",
+  projectId: "eatwhere-bffbb",
+  storageBucket: "eatwhere-bffbb.appspot.com",
+  messagingSenderId: "170428892641"
+}
+
+firebase.initializeApp(firebaseConfig);
+
+export default class Eateries extends Component {
+  constructor(props) {
+    super(props);
+    this.itemsRef = firebase.database().ref('eateries');
+    this.state = {
+      isLoading: false,
+      listData: []
+    }
+  }
+
+  componentDidMount() {
+    this.listenForItems(this.itemsRef);
+  }
+
+  listenForItems(itemsRef) {
+    itemsRef.on('value', (snap) => {
+
+      // get children as an array
+      var items = [];
+      snap.forEach((child) => {
+        items.push({
+          name: child.val().name,
+          _key: child.key
+        });
+      });
+
+      this.setState({
+        listData: items
+      });
+
+    });
+  }
+
+  _onPressButton() {
+    AlertIOS.prompt(
+      'Add an Eatery',
+      null,
+      [
+        {
+          text: 'Add',
+          onPress: (text) => {
+            this.itemsRef.push({ name: text })
+          }
+        },
+      ],
+    );
   }
 
   render() {
+    if (this.state.isLoading) {
+      return (
+        <View style={{flex: 1, paddingTop: 20}}>
+          <ActivityIndicator />
+        </View>
+      );
+    }
+    let DataArray = Object.values(this.state.listData);
     return (
       <KeyboardAvoidingView
         style={styles.container}
@@ -24,24 +89,15 @@ export default class LotsOfStyles extends Component {
         <View style={styles.top}></View>
         <FlatList
           style={{flex: 1}}
-          data={[
-            {key: 'Tanyas Soup Kitchen'},
-            {key: 'Anchor'},
-            {key: 'Dempseys'},
-            {key: 'Picassos'},
-            {key: 'Little Saigon'},
-            {key: 'Uno Mas'},
-            {key: 'Flying Stove'},
-            {key: 'Caesars Palace'},
-          ]}
-          renderItem={({item}) => <Text style={styles.item}>{item.key}</Text>}
+          data={DataArray}
+          keyExtractor={(item, index) => index}
+          renderItem={({item}) => <Text style={styles.item}>{item.name}</Text>}
         />
         <View style={styles.buttonContainer}>
-          <Button
-            onPress={this._onPressButton}
-            title="Add Place"
-            color="#841584"
-          />
+          <TouchableHighlight style={styles.button}
+            onPress={this._onPressButton.bind(this)}>
+            <Text style={styles.buttonText}>Add</Text>
+          </TouchableHighlight>
         </View>
         <TextInput 
           style={styles.where}
@@ -54,8 +110,18 @@ export default class LotsOfStyles extends Component {
 }
 
 const styles = StyleSheet.create({
+  button: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  buttonText: {
+    fontSize: 22, fontWeight: 'bold', color: 'white'
+  },
   buttonContainer: {
-    margin: 20
+    margin: 20,
+    height: 44,
+    backgroundColor: '#6495ED',
   },
   container: {
     flex:1,
@@ -83,4 +149,4 @@ const styles = StyleSheet.create({
 });
 
 // skip this line if using Create React Native App
-AppRegistry.registerComponent('AwesomeProject', () => LotsOfStyles);
+AppRegistry.registerComponent('EatWhere', () => Eateries);
